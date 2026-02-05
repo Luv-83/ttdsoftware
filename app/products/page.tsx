@@ -357,25 +357,23 @@ export default function ProductsPage() {
   )
 
   return (
-    <div className="container py-6">
-      <div className="flex gap-8">
-        {/* Desktop Sidebar */}
-        <aside className="hidden w-64 shrink-0 lg:block">
-          <div className="sticky top-24">
-            <h2 className="flex items-center gap-2 text-lg font-semibold">
+    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 py-6 max-w-[1920px] mx-auto">
+      <div className="flex gap-6 lg:gap-8">
+        {/* Desktop Sidebar - Always Visible on Large Screens */}
+        <aside className="hidden lg:block w-64 xl:w-72 shrink-0">
+          <div className="sticky top-24 max-h-[calc(100vh-120px)] overflow-y-auto pr-2">
+            <h2 className="flex items-center gap-2 text-lg font-semibold mb-4">
               <Filter className="h-5 w-5" />
               Filters
             </h2>
-            <div className="mt-4">
-              <FilterContent />
-            </div>
+            <FilterContent />
           </div>
         </aside>
 
         {/* Main Content */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           {/* Header */}
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-2xl font-bold">
                 {selectedCategory
@@ -389,7 +387,7 @@ export default function ProductsPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {/* Mobile Filter Button */}
+              {/* Mobile Filter Button - Only visible on smaller screens */}
               <Sheet open={isMobileFilterOpen} onOpenChange={setIsMobileFilterOpen}>
                 <SheetTrigger asChild>
                   <Button variant="outline" className="lg:hidden bg-transparent">
@@ -400,9 +398,12 @@ export default function ProductsPage() {
                     )}
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-[300px] overflow-y-auto">
+                <SheetContent side="left" className="w-[320px] overflow-y-auto">
                   <SheetHeader>
-                    <SheetTitle>Filters</SheetTitle>
+                    <SheetTitle className="flex items-center gap-2">
+                      <Filter className="h-5 w-5" />
+                      Filters
+                    </SheetTitle>
                   </SheetHeader>
                   <div className="mt-4">
                     <FilterContent />
@@ -410,9 +411,21 @@ export default function ProductsPage() {
                 </SheetContent>
               </Sheet>
 
+              {/* Search Input */}
+              <div className="relative hidden md:block lg:hidden xl:block">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-[200px] xl:w-[250px] pl-9"
+                />
+              </div>
+
               {/* Sort */}
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-[150px] sm:w-[180px]">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
@@ -448,7 +461,7 @@ export default function ProductsPage() {
 
           {/* Active Filters */}
           {activeFilterCount > 0 && (
-            <div className="mb-4 flex flex-wrap items-center gap-2">
+            <div className="mb-6 flex flex-wrap items-center gap-2">
               <span className="text-sm text-muted-foreground">Active filters:</span>
               {selectedCategory && (
                 <Badge variant="secondary" className="gap-1">
@@ -496,10 +509,10 @@ export default function ProductsPage() {
             </div>
           )}
 
-          {/* Products Grid */}
+          {/* Products Grid - Responsive columns based on available space */}
           {isLoading ? (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-              {Array.from({ length: 12 }).map((_, i) => (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              {Array.from({ length: 15 }).map((_, i) => (
                 <ProductCardSkeleton key={i} />
               ))}
             </div>
@@ -507,7 +520,7 @@ export default function ProductsPage() {
             <div
               className={
                 viewMode === 'grid'
-                  ? 'grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4'
+                  ? 'grid grid-cols-2 gap-4 sm:grid-cols-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
                   : 'flex flex-col gap-4'
               }
             >
@@ -516,7 +529,7 @@ export default function ProductsPage() {
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="rounded-full bg-muted p-4">
                 <Search className="h-8 w-8 text-muted-foreground" />
               </div>

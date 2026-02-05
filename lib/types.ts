@@ -80,6 +80,7 @@ export interface Address {
 
 // Order Types
 export interface Order {
+  status: string
   id: string
   orderNumber: string
   userId: string

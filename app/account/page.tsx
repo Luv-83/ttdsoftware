@@ -5,19 +5,20 @@ import { Package, MapPin, Heart, CreditCard, ArrowRight, ShoppingBag, Clock, Tru
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { useStore } from "@/lib/store"
+import { useAuthStore, useWishlistStore } from "@/lib/store"
 import { formatPrice, formatDate } from "@/lib/utils"
 import { mockOrders } from "@/lib/mock-data"
 
 export default function AccountOverviewPage() {
-  const { user, wishlist } = useStore()
+  const user = useAuthStore((state) => state.user)
+  const wishlistItems = useWishlistStore((state) => state.items)
   
   const recentOrders = mockOrders.slice(0, 3)
   
   const stats = [
     { label: "Total Orders", value: mockOrders.length, icon: Package },
-    { label: "Wishlist Items", value: wishlist.length, icon: Heart },
-    { label: "Saved Addresses", value: 2, icon: MapPin },
+    { label: "Wishlist Items", value: wishlistItems.length, icon: Heart },
+    { label: "Saved Addresses", value: user?.addresses?.length || 0, icon: MapPin },
     { label: "Payment Methods", value: 1, icon: CreditCard },
   ]
 
@@ -28,7 +29,7 @@ export default function AccountOverviewPage() {
         <CardContent className="p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-xl font-semibold">Welcome back, {user?.name?.split(" ")[0]}!</h2>
+              <h2 className="text-xl font-semibold">Welcome back, {user?.name?.split(" ")[0] || "User"}!</h2>
               <p className="text-muted-foreground">
                 Here&apos;s what&apos;s happening with your account today.
               </p>

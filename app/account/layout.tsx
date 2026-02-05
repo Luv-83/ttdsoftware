@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
-import { useStore } from "@/lib/store"
+import { useAuthStore } from "@/lib/store"
 import { getInitials } from "@/lib/utils"
 
 const NAV_ITEMS = [
@@ -38,7 +38,7 @@ export default function AccountLayout({
 }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, isAuthenticated, logout } = useStore()
+  const { user, isAuthenticated, logout } = useAuthStore()
 
   useEffect(() => {
     if (!isAuthenticated) {
