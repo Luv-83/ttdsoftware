@@ -11,14 +11,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { useStore } from "@/lib/store"
+import { useAuthStore } from "@/lib/store"
 import { useToast } from "@/hooks/use-toast"
 import { validateEmail, validatePhone, sleep } from "@/lib/utils"
 
 export default function RegisterPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const { setUser, setIsAuthenticated } = useStore()
+  const login = useAuthStore((state) => state.login)
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [acceptTerms, setAcceptTerms] = useState(false)
@@ -97,11 +97,11 @@ export default function RegisterPage() {
       phone: `+91 ${formData.phone}`,
       avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.email}`,
       addresses: [],
+      role: 'user' as const,
       createdAt: new Date().toISOString(),
     }
     
-    setUser(mockUser)
-    setIsAuthenticated(true)
+    login(mockUser)
     setIsLoading(false)
     
     toast({

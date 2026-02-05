@@ -16,12 +16,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useStore } from "@/lib/store"
+import { useAuthStore } from "@/lib/store"
 import { useToast } from "@/hooks/use-toast"
 import { getInitials, sleep, validateEmail, validatePhone } from "@/lib/utils"
 
 export default function SettingsPage() {
-  const { user, setUser } = useStore()
+  const user = useAuthStore((state) => state.user)
+  const updateUser = useAuthStore((state) => state.updateUser)
   const { toast } = useToast()
   
   const [isLoading, setIsLoading] = useState(false)
@@ -70,14 +71,11 @@ export default function SettingsPage() {
     setIsLoading(true)
     await sleep(1500)
     
-    if (user) {
-      setUser({
-        ...user,
-        name: profileData.name,
-        email: profileData.email,
-        phone: `+91 ${profileData.phone}`,
-      })
-    }
+    updateUser({
+      name: profileData.name,
+      email: profileData.email,
+      phone: `+91 ${profileData.phone}`,
+    })
     
     setIsLoading(false)
     setErrors({})

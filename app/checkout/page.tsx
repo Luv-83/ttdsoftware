@@ -45,7 +45,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { useStore } from "@/lib/store"
+import { useCartStore, useAuthStore } from "@/lib/store"
 import { useToast } from "@/hooks/use-toast"
 import { formatPrice, validatePincode, validatePhone, calculateGST, sleep, generateOrderNumber } from "@/lib/utils"
 import type { Address } from "@/lib/types"
@@ -76,7 +76,12 @@ const PAYMENT_METHODS = [
 export default function CheckoutPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const { cart, user, isAuthenticated, clearCart } = useStore()
+  
+  // Use separate stores
+  const cartItems = useCartStore((state) => state.items)
+  const clearCart = useCartStore((state) => state.clearCart)
+  const user = useAuthStore((state) => state.user)
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
@@ -92,6 +97,7 @@ export default function CheckoutPage() {
       state: "Maharashtra",
       pincode: "400001",
       isDefault: true,
+      type: "home"
     },
   ])
   const [selectedAddress, setSelectedAddress] = useState<string>("addr-1")
@@ -121,13 +127,13 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!isAuthenticated) {
       router.push("/auth/login?redirect=/checkout")
-    } else if (cart.length === 0) {
+    } else if (cartItems.length === 0) {
       router.push("/cart")
     }
-  }, [isAuthenticated, cart, router])
+  }, [isAuthenticated, cartItems, router])
 
-  // Calculate totals
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  // Calculate totals using cart item structure
+  const subtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
   const discount = appliedCoupon ? Math.round(subtotal * appliedCoupon.discount) : 0
   const deliveryCharge = subtotal > 499 ? 0 : 40
   const taxableAmount = subtotal - discount
@@ -272,7 +278,7 @@ export default function CheckoutPage() {
 
   const selectedAddressData = addresses.find((a) => a.id === selectedAddress)
 
-  if (!isAuthenticated || cart.length === 0) {
+  if (!isAuthenticated || cartItems.length === 0) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -608,28 +614,26 @@ export default function CheckoutPage() {
                   <CardHeader>
                     <div className="flex items-center gap-2">
                       <Truck className="h-5 w-5 text-primary" />
-                      <CardTitle className="text-base">Order Items ({cart.length})</CardTitle>
+                      <CardTitle className="text-base">Order Items ({cartItems.length})</CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {cart.map((item) => (
-                      <div key={`${item.id}-${item.selectedSize}-${item.selectedColor}`} className="flex gap-4">
+                    {cartItems.map((item) => (
+                      <div key={item.product.id} className="flex gap-4">
                         <div className="relative h-20 w-20 overflow-hidden rounded-lg bg-muted">
                           <Image
-                            src={item.image || "/placeholder.svg"}
-                            alt={item.name}
+                            src={item.product.images?.[0] || "/placeholder.svg"}
+                            alt={item.product.name}
                             fill
                             className="object-cover"
                           />
                         </div>
                         <div className="flex-1">
-                          <h4 className="font-medium line-clamp-1">{item.name}</h4>
+                          <h4 className="font-medium line-clamp-1">{item.product.name}</h4>
                           <p className="text-sm text-muted-foreground">
                             Qty: {item.quantity}
-                            {item.selectedSize && ` | Size: ${item.selectedSize}`}
-                            {item.selectedColor && ` | Color: ${item.selectedColor}`}
                           </p>
-                          <p className="font-medium">{formatPrice(item.price * item.quantity)}</p>
+                          <p className="font-medium">{formatPrice(item.product.price * item.quantity)}</p>
                         </div>
                       </div>
                     ))}
@@ -707,7 +711,7 @@ export default function CheckoutPage() {
                 {/* Price Breakdown */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Subtotal ({cart.length} items)</span>
+                    <span className="text-muted-foreground">Subtotal ({cartItems.length} items)</span>
                     <span>{formatPrice(subtotal)}</span>
                   </div>
                   {discount > 0 && (

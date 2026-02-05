@@ -60,6 +60,7 @@ export default function AddressesPage() {
       state: "Maharashtra",
       pincode: "400001",
       isDefault: true,
+      type: "home"
     },
     {
       id: "addr-2",
@@ -72,6 +73,7 @@ export default function AddressesPage() {
       state: "Maharashtra",
       pincode: "400051",
       isDefault: false,
+      type: "home"
     },
   ])
   
