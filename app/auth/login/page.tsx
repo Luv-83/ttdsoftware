@@ -1,10 +1,9 @@
 "use client"
 
 import React from "react"
-
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, Phone, ArrowRight, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,12 +13,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { useAuthStore } from "@/lib/store"
 import { useToast } from "@/hooks/use-toast"
-import { validateEmail, validatePhone, sleep } from "@/lib/utils"
+import { validateEmail, validatePhone } from "@/lib/utils"
+import { loginWithEmail, sendOtp, verifyOtp } from "@/lib/api/auth"
+
+// Set to true to use mock data instead of real API
+const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API === 'true'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectUrl = searchParams.get('redirect') || '/'
   const { toast } = useToast()
   const login = useAuthStore((state) => state.login)
+  
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [loginMethod, setLoginMethod] = useState<"email" | "phone">("email")
@@ -33,6 +39,7 @@ export default function LoginPage() {
   
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [otpSent, setOtpSent] = useState(false)
+  const [otpId, setOtpId] = useState<string | undefined>()
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -78,13 +85,167 @@ export default function LoginPage() {
     }
     
     setIsLoading(true)
-    await sleep(1500)
-    setOtpSent(true)
-    setIsLoading(false)
-    toast({
-      title: "OTP Sent",
-      description: `OTP has been sent to +91 ${formData.phone}`,
-    })
+    setErrors({})
+
+    try {
+      if (USE_MOCK_API) {
+        // Mock API response
+        await new Promise(resolve => setTimeout(resolve, 1500))
+        setOtpSent(true)
+        toast({
+          title: "OTP Sent",
+          description: `OTP has been sent to +91 ${formData.phone}`,
+        })
+      } else {
+        // Real API call
+        const response = await sendOtp(formData.phone)
+        
+        if (response.success) {
+          setOtpSent(true)
+          setOtpId(response.data?.otpId)
+          toast({
+            title: "OTP Sent",
+            description: response.message || `OTP has been sent to +91 ${formData.phone}`,
+          })
+        } else {
+          setErrors({ phone: response.error || "Failed to send OTP" })
+          toast({
+            title: "Error",
+            description: response.error || "Failed to send OTP",
+            variant: "destructive",
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Send OTP error:', error)
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleEmailLogin = async () => {
+    setIsLoading(true)
+    setErrors({})
+
+    try {
+      if (USE_MOCK_API) {
+        // Mock API response
+        await new Promise(resolve => setTimeout(resolve, 1500))
+        
+        const mockUser = {
+          id: "user-1",
+          email: formData.email,
+          name: "Demo User",
+          phone: "+91 9876543210",
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.email}`,
+          addresses: [],
+          role: 'user' as const,
+          createdAt: new Date().toISOString(),
+        }
+        
+        login(mockUser)
+        toast({
+          title: "Welcome back!",
+          description: "You have been logged in successfully.",
+        })
+        router.push(redirectUrl)
+      } else {
+        // Real API call
+        const response = await loginWithEmail(formData.email, formData.password)
+        
+        if (response.success && response.data) {
+          login(response.data.user)
+          toast({
+            title: "Welcome back!",
+            description: "You have been logged in successfully.",
+          })
+          router.push(redirectUrl)
+        } else {
+          setErrors({ 
+            email: response.error || "Invalid credentials" 
+          })
+          toast({
+            title: "Login Failed",
+            description: response.error || "Invalid email or password",
+            variant: "destructive",
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handlePhoneLogin = async () => {
+    setIsLoading(true)
+    setErrors({})
+
+    try {
+      if (USE_MOCK_API) {
+        // Mock API response
+        await new Promise(resolve => setTimeout(resolve, 1500))
+        
+        const mockUser = {
+          id: "user-1",
+          email: `${formData.phone}@phone.example.com`,
+          name: "Demo User",
+          phone: `+91 ${formData.phone}`,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.phone}`,
+          addresses: [],
+          role: 'user' as const,
+          createdAt: new Date().toISOString(),
+        }
+        
+        login(mockUser)
+        toast({
+          title: "Welcome back!",
+          description: "You have been logged in successfully.",
+        })
+        router.push(redirectUrl)
+      } else {
+        // Real API call
+        const response = await verifyOtp(formData.phone, formData.otp, otpId)
+        
+        if (response.success && response.data) {
+          login(response.data.user)
+          toast({
+            title: "Welcome back!",
+            description: "You have been logged in successfully.",
+          })
+          router.push(redirectUrl)
+        } else {
+          setErrors({ 
+            otp: response.error || "Invalid OTP" 
+          })
+          toast({
+            title: "Verification Failed",
+            description: response.error || "Invalid OTP. Please try again.",
+            variant: "destructive",
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Phone login error:', error)
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,30 +253,27 @@ export default function LoginPage() {
     
     if (!validateForm()) return
     
-    setIsLoading(true)
-    await sleep(1500)
-    
-    // Mock successful login
-    const mockUser = {
-      id: "user-1",
-      email: formData.email || `${formData.phone}@phone.TTDsoftware.com`,
-      name: "Demo User",
-      phone: formData.phone || "+91 9876543210",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=demo",
-      addresses: [],
-      role: 'user' as const,
-      createdAt: new Date().toISOString(),
+    if (loginMethod === "email") {
+      await handleEmailLogin()
+    } else {
+      await handlePhoneLogin()
     }
-    
-    login(mockUser)
-    setIsLoading(false)
-    
+  }
+
+  const handleGoogleLogin = async () => {
+    // Implement Google OAuth flow
     toast({
-      title: "Welcome back!",
-      description: "You have been logged in successfully.",
+      title: "Coming Soon",
+      description: "Google login will be available soon.",
     })
-    
-    router.push("/")
+  }
+
+  const handleFacebookLogin = async () => {
+    // Implement Facebook OAuth flow
+    toast({
+      title: "Coming Soon",
+      description: "Facebook login will be available soon.",
+    })
   }
 
   return (
@@ -132,6 +290,7 @@ export default function LoginPage() {
             setLoginMethod(v as "email" | "phone")
             setErrors({})
             setOtpSent(false)
+            setOtpId(undefined)
           }}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="email">Email</TabsTrigger>
@@ -151,6 +310,7 @@ export default function LoginPage() {
                       className="pl-10"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      disabled={isLoading}
                     />
                   </div>
                   {errors.email && (
@@ -174,11 +334,13 @@ export default function LoginPage() {
                       className="pl-10 pr-10"
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      disabled={isLoading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      disabled={isLoading}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -221,7 +383,7 @@ export default function LoginPage() {
                         className="rounded-l-none"
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
-                        disabled={otpSent}
+                        disabled={otpSent || isLoading}
                       />
                     </div>
                   </div>
@@ -240,6 +402,7 @@ export default function LoginPage() {
                       maxLength={6}
                       value={formData.otp}
                       onChange={(e) => setFormData({ ...formData, otp: e.target.value.replace(/\D/g, "").slice(0, 6) })}
+                      disabled={isLoading}
                     />
                     {errors.otp && (
                       <p className="text-sm text-destructive">{errors.otp}</p>
@@ -247,7 +410,8 @@ export default function LoginPage() {
                     <button
                       type="button"
                       onClick={handleSendOtp}
-                      className="text-sm text-primary hover:underline"
+                      className="text-sm text-primary hover:underline disabled:opacity-50"
+                      disabled={isLoading}
                     >
                       Resend OTP
                     </button>
@@ -292,7 +456,12 @@ export default function LoginPage() {
           </div>
           
           <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" className="w-full bg-transparent">
+            <Button 
+              variant="outline" 
+              className="w-full bg-transparent"
+              onClick={handleGoogleLogin}
+              disabled={isLoading}
+            >
               <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                 <path
                   fill="currentColor"
@@ -313,7 +482,12 @@ export default function LoginPage() {
               </svg>
               Google
             </Button>
-            <Button variant="outline" className="w-full bg-transparent">
+            <Button 
+              variant="outline" 
+              className="w-full bg-transparent"
+              onClick={handleFacebookLogin}
+              disabled={isLoading}
+            >
               <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
               </svg>

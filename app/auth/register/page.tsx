@@ -1,7 +1,6 @@
 "use client"
 
 import React from "react"
-
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -13,12 +12,17 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Checkbox } from "@/components/ui/checkbox"
 import { useAuthStore } from "@/lib/store"
 import { useToast } from "@/hooks/use-toast"
-import { validateEmail, validatePhone, sleep } from "@/lib/utils"
+import { validateEmail, validatePhone } from "@/lib/utils"
+import { registerUser } from "@/lib/api/auth"
+
+// Set to true to use mock data instead of real API
+const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API === 'true'
 
 export default function RegisterPage() {
   const router = useRouter()
   const { toast } = useToast()
   const login = useAuthStore((state) => state.login)
+  
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [acceptTerms, setAcceptTerms] = useState(false)
@@ -87,29 +91,75 @@ export default function RegisterPage() {
     if (!validateForm()) return
     
     setIsLoading(true)
-    await sleep(2000)
-    
-    // Mock successful registration
-    const mockUser = {
-      id: "user-new",
-      email: formData.email,
-      name: formData.name,
-      phone: `+91 ${formData.phone}`,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.email}`,
-      addresses: [],
-      role: 'user' as const,
-      createdAt: new Date().toISOString(),
+    setErrors({})
+
+    try {
+      if (USE_MOCK_API) {
+        // Mock API response
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        
+        const mockUser = {
+          id: "user-new",
+          email: formData.email,
+          name: formData.name,
+          phone: `+91 ${formData.phone}`,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.email}`,
+          addresses: [],
+          role: 'user' as const,
+          createdAt: new Date().toISOString(),
+        }
+        
+        login(mockUser)
+        toast({
+          title: "Account created!",
+          description: "Welcome to TTD software. Your account has been created successfully.",
+        })
+        router.push("/")
+      } else {
+        // Real API call
+        const response = await registerUser({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password,
+        })
+        
+        if (response.success && response.data) {
+          login(response.data.user)
+          toast({
+            title: "Account created!",
+            description: "Welcome to TTD software. Your account has been created successfully.",
+          })
+          router.push("/")
+        } else {
+          // Handle specific error cases
+          const errorMessage = response.error || "Registration failed"
+          
+          if (errorMessage.toLowerCase().includes('email')) {
+            setErrors({ email: errorMessage })
+          } else if (errorMessage.toLowerCase().includes('phone')) {
+            setErrors({ phone: errorMessage })
+          } else {
+            setErrors({ general: errorMessage })
+          }
+          
+          toast({
+            title: "Registration Failed",
+            description: errorMessage,
+            variant: "destructive",
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Registration error:', error)
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
-    
-    login(mockUser)
-    setIsLoading(false)
-    
-    toast({
-      title: "Account created!",
-      description: "Welcome to TTD software. Your account has been created successfully.",
-    })
-    
-    router.push("/")
   }
 
   return (
@@ -123,6 +173,12 @@ export default function RegisterPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {errors.general && (
+              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                {errors.general}
+              </div>
+            )}
+            
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <div className="relative">
@@ -134,6 +190,7 @@ export default function RegisterPage() {
                   className="pl-10"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  disabled={isLoading}
                 />
               </div>
               {errors.name && (
@@ -152,6 +209,7 @@ export default function RegisterPage() {
                   className="pl-10"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  disabled={isLoading}
                 />
               </div>
               {errors.email && (
@@ -173,6 +231,7 @@ export default function RegisterPage() {
                     className="rounded-l-none"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -192,11 +251,13 @@ export default function RegisterPage() {
                   className="pl-10 pr-10"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  disabled={isLoading}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -229,6 +290,7 @@ export default function RegisterPage() {
                   className="pl-10"
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  disabled={isLoading}
                 />
               </div>
               {errors.confirmPassword && (
@@ -241,6 +303,7 @@ export default function RegisterPage() {
                 id="terms"
                 checked={acceptTerms}
                 onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
+                disabled={isLoading}
               />
               <label
                 htmlFor="terms"
