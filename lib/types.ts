@@ -54,7 +54,8 @@ export interface Cart {
 // User Types
 export interface User {
   id: string
-  name: string
+  firstName: string
+  lastName: string
   email: string
   phone: string
   avatar?: string

@@ -167,13 +167,14 @@ export async function verifyOtp(phone: string, otp: string, otpId?: string): Pro
  * Register new user
  */
 export async function registerUser(userData: {
-  name: string
+  firstName: string
+  lastName: string
   email: string
   phone: string
   password: string
 }): Promise<ApiResponse<RegisterResponse>> {
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    const response = await fetch(`${API_BASE_URL}/auth//signup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

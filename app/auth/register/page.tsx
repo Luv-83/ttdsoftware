@@ -14,6 +14,7 @@ import { useAuthStore } from "@/lib/store"
 import { useToast } from "@/hooks/use-toast"
 import { validateEmail, validatePhone } from "@/lib/utils"
 import { registerUser } from "@/lib/api/auth"
+import config from "@/lib/config"
 
 // Set to true to use mock data instead of real API
 const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API === 'true'
@@ -28,7 +29,8 @@ export default function RegisterPage() {
   const [acceptTerms, setAcceptTerms] = useState(false)
   
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
     password: "",
@@ -47,12 +49,16 @@ export default function RegisterPage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
     
-    if (!formData.name.trim()) {
+    if (!formData.firstName.trim()) {
       newErrors.name = "Name is required"
-    } else if (formData.name.trim().length < 2) {
+    } else if (formData.firstName.trim().length < 2) {
       newErrors.name = "Name must be at least 2 characters"
     }
-    
+    if (!formData.lastName.trim()) {
+      newErrors.name = "Name is required"
+    } else if (formData.lastName.trim().length < 2) {
+      newErrors.name = "Name must be at least 2 characters"
+    }   
     if (!formData.email) {
       newErrors.email = "Email is required"
     } else if (!validateEmail(formData.email)) {
@@ -94,14 +100,15 @@ export default function RegisterPage() {
     setErrors({})
 
     try {
-      if (USE_MOCK_API) {
+      if (config.useMockApi) {
         // Mock API response
         await new Promise(resolve => setTimeout(resolve, 2000))
         
         const mockUser = {
           id: "user-new",
           email: formData.email,
-          name: formData.name,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
           phone: `+91 ${formData.phone}`,
           avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.email}`,
           addresses: [],
@@ -118,7 +125,8 @@ export default function RegisterPage() {
       } else {
         // Real API call
         const response = await registerUser({
-          name: formData.name,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
           email: formData.email,
           phone: formData.phone,
           password: formData.password,
@@ -180,16 +188,34 @@ export default function RegisterPage() {
             )}
             
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">First Name</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  id="name"
+                  id="firstName"
                   type="text"
-                  placeholder="Enter your full name"
+                  placeholder="Enter your first name"
                   className="pl-10"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  disabled={isLoading}
+                />
+              </div>
+              {errors.name && (
+                <p className="text-sm text-destructive">{errors.name}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">Last Name</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="lastName"
+                  type="text"
+                  placeholder="Enter your last name"
+                  className="pl-10"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                   disabled={isLoading}
                 />
               </div>

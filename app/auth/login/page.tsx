@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, Phone, ArrowRight, Loader2 } from "lucide-react"
@@ -15,6 +15,7 @@ import { useAuthStore } from "@/lib/store"
 import { useToast } from "@/hooks/use-toast"
 import { validateEmail, validatePhone } from "@/lib/utils"
 import { loginWithEmail, sendOtp, verifyOtp } from "@/lib/api/auth"
+import config, { debugConfig } from "@/lib/config"
 
 // Set to true to use mock data instead of real API
 const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API === 'true'
@@ -25,6 +26,11 @@ export default function LoginPage() {
   const redirectUrl = searchParams.get('redirect') || '/'
   const { toast } = useToast()
   const login = useAuthStore((state) => state.login)
+  
+  // Debug config on mount (only in development)
+  useEffect(() => {
+    debugConfig()
+  }, [])
   
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -133,14 +139,15 @@ export default function LoginPage() {
     setErrors({})
 
     try {
-      if (USE_MOCK_API) {
+      if (config.useMockApi) {
         // Mock API response
         await new Promise(resolve => setTimeout(resolve, 1500))
         
         const mockUser = {
           id: "user-1",
           email: formData.email,
-          name: "Demo User",
+          firstName: "Demo User",
+          lastName: "test",
           phone: "+91 9876543210",
           avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.email}`,
           addresses: [],
@@ -200,7 +207,8 @@ export default function LoginPage() {
         const mockUser = {
           id: "user-1",
           email: `${formData.phone}@phone.example.com`,
-          name: "Demo User",
+          firstName: "Demo User",
+          lastName: "test",
           phone: `+91 ${formData.phone}`,
           avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.phone}`,
           addresses: [],
